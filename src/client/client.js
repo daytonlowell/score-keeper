@@ -23,11 +23,13 @@ new Ractive({
 	template: require('./client.html'),
 	data: {
 		preGame: true,
-		players: JSON.parse(localStorage.getItem('players')) || [],
+		pastPlayers: JSON.parse(localStorage.getItem('players')) || [],
+		players: [],
 		roundsToPlay: JSON.parse(localStorage.getItem('rounds')) || null,
 		currentScoringPlayer: undefined,
 		addPlayerName: '',
 		currentRound: {},
+		currentEditPlayer: '',
 		currentGame: {
 			rounds: [],
 		},
@@ -51,6 +53,13 @@ new Ractive({
 		displayRounds() {
 			return this.get('currentGame.rounds').slice().sort((a, b) => b.number - a.number)
 		},
+		displayPastPlayers() {
+			const players = this.get('players')
+
+			return this.get('pastPlayers').filter(pastPlayer => {
+				return !players.includes(pastPlayer)
+			})
+		},
 	},
 	getRoundIndex(givenRoundNumber) {
 		return this.get('currentGame.rounds').findIndex(round => round.number === givenRoundNumber)
@@ -66,19 +75,47 @@ new Ractive({
 
 		return score === winningScore
 	},
+	roundScore(scores) {
+		scores = Object.values(scores)
+		const maxScore = Math.max(...scores)
+		const minScore = Math.min(...scores)
+
+		const highWins = this.get('winningScoreType') === 'HIGH'
+
+		return {
+			winning: highWins ? maxScore : minScore,
+			losing: !highWins ? maxScore : minScore,
+		}
+	},
+	isWinningRound(roundScores, player) {
+		return this.roundScore(roundScores).winning === roundScores[player] || 0
+	},
+	isLosingRound(roundScores, player) {
+		return this.roundScore(roundScores).losing === roundScores[player] || 0
+	},
+	isWinningOrLosingRound(roundScores, player) {
+		return this.isWinningRound(roundScores, player) || this.isLosingRound(roundScores, player)
+	},
 	startGame() {
 		const ractive = this
 
-		ractive.set({ preGame: false })
-		ractive.push('currentGame.rounds', getNewRound(ractive.get('players'), 0))
+		if (this.get('players.length') < 2) {
+			alert(`You don't have enough players!`)
+			return this.find('#player').select()
+		}
 
-		ractive.link('currentGame.rounds.0', 'currentRound')
-		ractive.link('players.0', 'currentScoringPlayer')
+		Promise.all([
+			ractive.push('currentGame.rounds', getNewRound(ractive.get('players'), 0)),
+			ractive.link('currentGame.rounds.0', 'currentRound'),
+			ractive.link('players.0', 'currentScoringPlayer'),
+		]).then(() => {
+			ractive.set({ preGame: false })
+		})
 
 		const roundsToPlay = ractive.get('roundsToPlay')
 		const players = ractive.get('players')
 
-		players && players.length > 0 ? localStorage.setItem('players', JSON.stringify(ractive.get('players'))) : localStorage.removeItem('players')
+		players && players.length > 0 ? localStorage.setItem('players', JSON.stringify([ ...ractive.get('players'), ...ractive.get('displayPastPlayers') ])) : localStorage.removeItem('players')
 		roundsToPlay ? localStorage.setItem('rounds', JSON.stringify(roundsToPlay)) : localStorage.removeItem('rounds')
 	},
 	addPlayer(name, context, event) {
@@ -88,18 +125,21 @@ new Ractive({
 			return alert('Player already exists!')
 		}
 
-		this.push('players', name)
+		this.push('players', name.trim())
 		this.set({ addPlayerName: '' })
 	},
 	editPlayer(name) {
-		this.removePlayer(name)
-		this.set({ addPlayerName: name }).then(() => {
-			this.find('#player').select()
+		this.link(`players.${this.get('players').indexOf(name)}`, 'currentEditPlayer').then(() => {
+			this.find('#edit-player').select()
 		})
 	},
 	removePlayer(name) {
 		const playerIndex = this.get('players').indexOf(name)
 		this.splice('players', playerIndex, 1)
+	},
+	removePastPlayer(name) {
+		const playerIndex = this.get('pastPlayers').indexOf(name)
+		this.splice('pastPlayers', playerIndex, 1)
 	},
 	reorderPlayer(playerIndex, moveUp) {
 		if ((moveUp && playerIndex !== 0) || (!moveUp && playerIndex !== this.get('players').length - 1)) {

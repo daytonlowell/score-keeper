@@ -9,98 +9,144 @@
 		margin: .2rem;
 		touch-action: manipulation;
 	}
+
+	.players-list-item {
+		font-size: large;
+		border-left: 0px;
+		border-right: 0px;
+	}
+
+	.players-list-item:first-child {
+		border-top: 0px;
+	}
+
+	.players-list-item:last-child {
+		border-bottom: 0px;
+	}
 </style>
 
-<div class="container pt-4">
+<div class="container-md pt-4">
 	{{#if preGame}}
-	<div class="card">
-		<div class="card-header">
-			<div class="d-flex justify-content-between">
-				<h5><i class="fas fa-tally"></i> New Game</h5>
-				<button
-					disabled="{{players.length < 1}}"
-					class="btn btn-sm btn-outline-success"
-					on-click="@this.startGame()"
-				><i class="fas fa-play-circle"></i> Start Game!</button>
+	<div class="d-flex flex-row-reverse mb-2">
+		<button
+			class-disabled="players.length < 2"
+			class="btn btn-outline-success"
+			on-click="@this.startGame()"
+		><i class="fas fa-play-circle"></i> Start Game!</button>
+	</div>
+	<div class="card-deck">
+		<div class="card">
+			<h5 class="card-header">Game Settings</h5>
+			<div class="card-body">
+				<div class="form-row">
+					<div class="col-12 col-md-6">
+						<div class="form-group">
+							<label for="rounds">Rounds</label>
+							<input
+								id="rounds"
+								class="form-control form-control-sm"
+								type="number"
+								inputmode="number"
+								placeholder="Leave blank for unlimited"
+								value="{{roundsToPlay}}"
+							/>
+						</div>
+					</div>
+				</div>
+				<div class="form-row">
+					<div class="col-12">
+						<div class="input-group input-group-sm">
+							<select
+								class="form-control custom-select"
+								value="{{winningScoreType}}"
+							>
+								<option value="HIGH">High</option>
+								<option value="LOW">Low</option>
+							</select>
+							<div class="input-group-append">
+								<span class="input-group-text">Score Wins</span>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
-		<div class="card-body">
-			<div class="form-row align-items-end">
-				<div class="col-md-6">
-					<div class="form-group">
-						<label for="rounds">Rounds</label>
-						<input
-							id="rounds"
-							class="form-control form-control-sm"
-							type="number"
-							inputmode="number"
-							placeholder="Leave blank for unlimited"
-							value="{{roundsToPlay}}"
-						/>
+
+		<div class="card">
+			<div class="card-header">
+				<div class="d-flex justify-content-between">
+					<div>
+						<h5 class="mb-0">Game Players</h5>
 					</div>
-				</div>
-				<div class="col-md-6">
-					<div class="input-group input-group-sm mb-3">
-						<select
-							class="form-control custom-select"
-							value="{{winningScoreType}}"
-						>
-							<option value="HIGH">High</option>
-							<option value="LOW">Low</option>
-						</select>
-						<div class="input-group-append">
-							<span class="input-group-text">Score Wins</span>
-						</div>
-					</div>
+					{{#if players.length > 0}}
+					<button
+						class="btn btn-sm btn-outline-danger"
+						on-click="@global.confirm('Are you sure you want to remove all players?') ? @this.set({ players: [] }) : 0"
+					><i class="fas fa-minus-circle"></i> Clear All</button>
+					{{/if}}
 				</div>
 			</div>
-
-			<div class="card">
-				<div class="card-header">
-					<div class="d-flex justify-content-between">
-						<div>
-							<h5 class="mb-0"><i class="fas fa-users"></i> Players
-								<form
-									class="form-group mb-0"
-									style="display: inline-block;"
-									on-submit="@this.addPlayer(addPlayerName, {}, @event)"
-								>
-									<div class="input-group input-group-sm ml-2">
-										<input
-											id="player"
-											placeholder="Add Player Name"
-											class="form-control"
-											value="{{addPlayerName}}"
-											autofocus
-											autocomplete="off"
-										/>
-										<div class="input-group-append">
-											<button
-												class="btn btn-outline-success"
-												type="submit"
-												id="add-player-button"
-											>
-												<i class="fas fa-plus"></i>
-											</button>
-										</div>
-									</div>
-								</form>
-							</h5>
-						</div>
-						{{#if players.length > 0}}
-						<button
-							class="btn btn-sm btn-outline-danger"
-							on-click="@this.set({ players: [] })"
-						><i class="fas fa-minus-circle"></i> Clear Players</button>
-						{{/if}}
-					</div>
-				</div>
-				{{#if players && players.length > 0}}
-				<ul class="list-group">
-					{{#players:i}}
-					<li class="list-group-item">
+			<div>
+				<ul class="list-group players-list-group">
+					<li class="list-group-item players-list-item">
+						<form
+							class="form-group mb-0"
+							style="display: inline-block; width: 100%"
+							on-submit="@this.addPlayer(addPlayerName, {}, @event)"
+						>
+							<div class="input-group input-group-sm">
+								<input
+									id="player"
+									placeholder="Add Player Name"
+									class="form-control"
+									value="{{addPlayerName}}"
+									list="past-players"
+									autofocus
+								/>
+								<datalist id="past-players">
+									{{#displayPastPlayers}}
+									<option value="{{this}}" />
+									{{/displayPastPlayers}}
+								</datalist>
+								<div class="input-group-append">
+									<button
+										class="btn btn-outline-success"
+										type="submit"
+										id="add-player-button"
+										disabled="{{!addPlayerName.trim()}}"
+									>
+										<i class="fas fa-plus"></i>
+									</button>
+								</div>
+							</div>
+						</form>
+					</li>
+					{{#players}}
+					<li class="list-group-item players-list-item">
 						<div class="d-flex justify-content-between align-items-center">
-							<div><i class="fas fa-user"></i> {{this}}</div>
+							{{#if currentEditPlayer === this}}
+							<div style="width: 40%">
+								<form
+									class="form-group m-0"
+									style="display: inline-block"
+									on-submit="@this.unlink('currentEditPlayer')"
+								>
+									<input
+										id="edit-player"
+										class="form-control form-control-sm"
+										value="{{currentEditPlayer}}"
+									/>
+								</form>
+							</div>
+							{{else}}
+							<div
+								on-click="@this.editPlayer(this)"
+								style="cursor:pointer;"
+							>
+								<i class="fas fa-user"></i> {{this}}
+							</div>
+							{{/if}}
+
 							<div>
 								<button
 									on-click="@this.reorderPlayer(i, true)"
@@ -111,10 +157,6 @@
 									class="btn btn-sm btn-outline-primary mr-2"
 								><i class="fas fa-arrow-down"></i></button>
 								<button
-									on-click="@this.editPlayer(this)"
-									class="btn btn-sm btn-outline-warning"
-								><i class="fas fa-pencil"></i></button>
-								<button
 									on-click="@this.removePlayer(this)"
 									class="btn btn-sm btn-outline-danger"
 								><i class="fas fa-minus-circle"></i></button>
@@ -123,7 +165,6 @@
 					</li>
 					{{/players}}
 				</ul>
-				{{/if}}
 			</div>
 		</div>
 	</div>
@@ -163,12 +204,14 @@
 						<div>
 							<i class="fas fa-user"></i> {{this}}
 						</div>
-						<div>
-							<span
-								class="badge badge-secondary"
-								style="font-variant-numeric: tabular-nums;"
-							>{{currentRound.scores[this]}}</span>
-						</div>
+						<span
+							class="badge"
+							class-badge-secondary="!@this.isWinningOrLosingRound(currentRound.scores, this)"
+							class-badge-success="@this.isWinningRound(currentRound.scores, this)"
+							class-badge-danger="@this.isLosingRound(currentRound.scores, this)"
+							style="width: 42px;"
+							style="font-variant-numeric: tabular-nums;"
+						>{{currentRound.scores[this]}}</span>
 					</div>
 				</li>
 				{{/players}}
@@ -183,11 +226,6 @@
 				{{/if}}
 			</h4>
 			<div class="d-flex justify-content-between">
-				<button
-					class="btn btn-outline-danger score-change-button mr-3"
-					class-disabled="!currentScoringPlayer"
-					on-click="@this.changePlayerRoundScore(currentScoringPlayer)"
-				><i class="fas fa-broom"></i></button>
 				<button
 					class="btn btn-outline-success score-change-button"
 					class-disabled="!currentScoringPlayer"
@@ -216,41 +254,43 @@
 		<h5 class="card-header">
 			Game Score
 		</h5>
-		<table class="table table-bordered table-striped table-sm">
-			<thead>
-				<tr class="text-right">
-					<th scope="col">#</th>
-					{{#players}}
-					<th scope="col">{{this}}
-						{{#if @this.isWinningScore(totals[this])}}
-						<i class="fas fa-trophy-alt"></i>
-						{{/if}}
-					</th>
-					{{/players}}
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-primary text-right">
-					<th scope="row">Totals</th>
-					{{#players}}
-					<td class="number">{{totals[this]}}</td>
-					{{/players}}
-				</tr>
-				{{#displayRounds:i}}
-				<tr
-					class-table-success="number === currentRound.number"
-					class="text-right"
-					style="cursor:pointer;"
-					on-click="@this.changeRound(number)"
-				>
-					<th scope="row">{{number}}</th>
-					{{#players}}
-					<td class="number">{{scores[this]}}</td>
-					{{/players}}
-				</tr>
-				{{/}}
-			</tbody>
-		</table>
+		<div class="table-responsive-sm">
+			<table class="table table-bordered table-striped table-sm">
+				<thead>
+					<tr class="text-right">
+						<th scope="col">#</th>
+						{{#players}}
+						<th scope="col">{{this}}
+							{{#if @this.isWinningScore(totals[this])}}
+							<i class="fas fa-trophy-alt"></i>
+							{{/if}}
+						</th>
+						{{/players}}
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="table-primary text-right">
+						<th scope="row">Totals</th>
+						{{#players}}
+						<td class="number">{{totals[this]}}</td>
+						{{/players}}
+					</tr>
+					{{#displayRounds:i}}
+					<tr
+						class-table-success="number === currentRound.number"
+						class="text-right"
+						style="cursor:pointer;"
+						on-click="@this.changeRound(number)"
+					>
+						<th scope="row">{{number}}</th>
+						{{#players}}
+						<td class="number">{{scores[this]}}</td>
+						{{/players}}
+					</tr>
+					{{/}}
+				</tbody>
+			</table>
+		</div>
 	</div>
 	{{/if}}
 </div>
