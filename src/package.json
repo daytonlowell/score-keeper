@@ -1,0 +1,22 @@
+{
+	"name": "score-keeper",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "rollup -c rollup.config.js",
+		"watch": "rollup -w -c -m rollup.config.js"
+	},
+	"author": "Dayton Lowell",
+	"license": "WTFPL",
+	"devDependencies": {
+		"rollup-plugin-string": "^3.0.0",
+		"rollup-watch": "^4.3.1",
+		"@rollup/plugin-commonjs": "^11.0.2",
+		"@rollup/plugin-node-resolve": "^7.1.1",
+		"rollup": "^1.31.0"
+	},
+	"dependencies": {
+		"deepmerge": "^4.2.2"
+	}
+}
