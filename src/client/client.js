@@ -17,15 +17,17 @@ function swapPosition(array, indexA, indexB) {
 	return array
 }
 
+const cap = str => `${str.charAt(0).toUpperCase()}${str.slice(1)}`
+
 // eslint-disable-next-line no-undef
 new Ractive({
 	el: 'body',
 	template: require('./client.html'),
 	data: {
 		preGame: true,
-		pastPlayers: JSON.parse(localStorage.getItem('players')) || [],
+		pastPlayers: JSON.parse(localStorage.getItem('pastPlayers')) || [],
 		players: [],
-		roundsToPlay: JSON.parse(localStorage.getItem('rounds')) || null,
+		roundsToPlay: JSON.parse(localStorage.getItem('roundsToPlay')) || null,
 		currentScoringPlayer: undefined,
 		addPlayerName: '',
 		currentRound: {},
@@ -34,6 +36,9 @@ new Ractive({
 			rounds: [],
 		},
 		winningScoreType: 'HIGH',
+	},
+	transitions: {
+		fade: require('ractive-transitions-fade'),
 	},
 	computed: {
 		totals() {
@@ -59,6 +64,9 @@ new Ractive({
 			return this.get('pastPlayers').filter(pastPlayer => {
 				return !players.includes(pastPlayer)
 			})
+		},
+		maxRound() {
+			return Math.max(...this.get('currentGame.rounds').map(({ number }) => number))
 		},
 	},
 	getRoundIndex(givenRoundNumber) {
@@ -97,35 +105,32 @@ new Ractive({
 		return this.isWinningRound(roundScores, player) || this.isLosingRound(roundScores, player)
 	},
 	startGame() {
-		const ractive = this
-
 		if (this.get('players.length') < 2) {
 			alert(`You don't have enough players!`)
 			return this.find('#player').select()
 		}
 
 		Promise.all([
-			ractive.push('currentGame.rounds', getNewRound(ractive.get('players'), 0)),
-			ractive.link('currentGame.rounds.0', 'currentRound'),
-			ractive.link('players.0', 'currentScoringPlayer'),
+			this.push('currentGame.rounds', getNewRound(this.get('players'), 0)),
+			this.link('currentGame.rounds.0', 'currentRound'),
+			this.set({ currentScoringPlayer: this.get('players')[0] }),
+			//TODO restore after ractive.link memory leak is fixed
+			//ractive.link('players.0', 'currentScoringPlayer'),
 		]).then(() => {
-			ractive.set({ preGame: false })
+			this.set({ preGame: false })
 		})
-
-		const roundsToPlay = ractive.get('roundsToPlay')
-		const players = ractive.get('players')
-
-		players && players.length > 0 ? localStorage.setItem('players', JSON.stringify([ ...ractive.get('players'), ...ractive.get('displayPastPlayers') ])) : localStorage.removeItem('players')
-		roundsToPlay ? localStorage.setItem('rounds', JSON.stringify(roundsToPlay)) : localStorage.removeItem('rounds')
 	},
-	addPlayer(name, context, event) {
+	addPlayerSubmit(name, context, event) {
 		event.preventDefault()
 
-		if (!name || this.get('players').find(player => player === name)) {
+		this.addPlayer(name)
+	},
+	addPlayer(name) {
+		if (!name || this.get('players').find(player => player.toUpperCase() === name.toUpperCase())) {
 			return alert('Player already exists!')
 		}
 
-		this.push('players', name.trim())
+		this.push('players', cap(name.trim()))
 		this.set({ addPlayerName: '' })
 	},
 	editPlayer(name) {
@@ -133,24 +138,40 @@ new Ractive({
 			this.find('#edit-player').select()
 		})
 	},
-	removePlayer(name) {
-		const playerIndex = this.get('players').indexOf(name)
-		this.splice('players', playerIndex, 1)
+	removePlayer(name, event) {
+		event.stopPropagation()
+
+		this.splice('players', this.get('players').indexOf(name), 1)
+		return false
 	},
-	removePastPlayer(name) {
-		const playerIndex = this.get('pastPlayers').indexOf(name)
-		this.splice('pastPlayers', playerIndex, 1)
+	removePastPlayer(name, event) {
+		event.stopPropagation()
+
+		this.splice('pastPlayers', this.get('pastPlayers').indexOf(name), 1)
+
+		return false
 	},
-	reorderPlayer(playerIndex, moveUp) {
+	reorderPlayer(playerIndex, moveUp, event) {
+		event.stopPropagation()
+
 		if ((moveUp && playerIndex !== 0) || (!moveUp && playerIndex !== this.get('players').length - 1)) {
 			this.set({ players: swapPosition(this.get('players'), playerIndex, moveUp ? playerIndex - 1 : playerIndex + 1) })
 		}
+
+		return false
+	},
+	clearAllPlayers() {
+		if (confirm('Are you sure you want to remove all players?')) {
+			this.set({ players: [] }).then(() => this.find('#player').select())
+		}
 	},
 	changeCurrentScoringPlayer(playerIndex) {
-		this.link(`players.${playerIndex}`, 'currentScoringPlayer')
+		this.set({ currentScoringPlayer: this.get('players')[playerIndex] })
+		//TODO restore this when the ractive.link memory leak bug is fixed.
+		//this.link(`players.${playerIndex}`, 'currentScoringPlayer')
 	},
 	nextRound() {
-		if (this.get('currentRound.number') === this.get('roundsToPlay')) {
+		if (this.get('maxRound') === this.get('roundsToPlay')) {
 			const totals = this.get('totals')
 			let finalTotals = []
 
@@ -161,10 +182,12 @@ new Ractive({
 			return alert(`Game Over!\n\n${finalTotals.join('\n')}`)
 		}
 
-		const maxRound = Math.max(...this.get('currentGame.rounds').map(round => round.number))
+		this.push('currentGame.rounds', getNewRound(this.get('players'), this.get('maxRound')))
 
-		this.push('currentGame.rounds', getNewRound(this.get('players'), maxRound))
-		this.link('players.0', 'currentScoringPlayer')
+		//TODO restore this when the ractive.link memory leak bug is fixed.
+		//this.link('players.0', 'currentScoringPlayer')
+		this.set({ currentScoringPlayer: this.get('players')[0] })
+
 		this.link(`currentGame.rounds.${this.get('currentGame.rounds').length - 1}`, 'currentRound')
 	},
 	changeRound(roundNumber) {
@@ -178,5 +201,19 @@ new Ractive({
 		}
 
 		this.set(`currentRound.scores.${player}`, newScore)
+	},
+	oninit() {
+		this.observe('players displayPastPlayers', () => {
+			const displayPastPlayers = this.get('displayPastPlayers')
+			const currentPlayers = this.get('players')
+
+			localStorage.setItem('pastPlayers', JSON.stringify([ ...currentPlayers, ...displayPastPlayers ]))
+		}, { init: false })
+
+		this.observe('roundsToPlay', roundsToPlay => {
+			roundsToPlay
+				? localStorage.setItem('roundsToPlay', JSON.stringify(roundsToPlay))
+				: localStorage.removeItem('roundsToPlay')
+		}, { init: false })
 	},
 })
