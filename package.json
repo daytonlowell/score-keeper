@@ -1,0 +1,31 @@
+{
+	"name": "score-keeper",
+	"description": "Svelte-based score keeping app",
+	"author": "Dayton Lowell",
+	"license": "WTFPL",
+	"private": true,
+	"version": "1.0.0",
+	"type": "module",
+	"packageManager": "pnpm@11.7.0",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-static": "^3.0.10",
+		"@sveltejs/kit": "^2.70.3",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"prettier": "^3.9.9",
+		"prettier-plugin-svelte": "^4.1.1",
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.7.6",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16"
+	}
+}
