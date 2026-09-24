@@ -13,7 +13,13 @@ export default defineConfig({
 
 			// This app is fully client-side (localStorage-backed), so it builds as a static SPA.
 			// See https://svelte.dev/docs/kit/single-page-apps for more information.
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+
+			// GitHub Pages serves a project site from /<repo-name>/, not the domain root.
+			// The deploy workflow sets BASE_PATH; local dev/build defaults to serving from '/'.
+			paths: {
+				base: (process.env.BASE_PATH ?? '') as '' | `/${string}`
+			}
 		})
 	]
 })

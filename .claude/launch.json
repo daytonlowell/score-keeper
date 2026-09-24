@@ -4,7 +4,7 @@
 		{
 			"name": "score-keeper-dev",
 			"runtimeExecutable": "pnpm",
-			"runtimeArgs": ["run", "dev", "--", "--port", "5183"],
+			"runtimeArgs": ["run", "dev", "--port", "5183"],
 			"port": 5183
 		}
 	]
